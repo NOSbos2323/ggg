@@ -15,8 +15,6 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
-        <Route path="/google-signin" element={<LoginPage />} />
-        <Route path="/signin" element={<LoginPage />} />
 
         {/* Add this before the catchall route */}
         {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
