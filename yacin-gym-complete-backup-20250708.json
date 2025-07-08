@@ -1,0 +1,180 @@
+{
+  "metadata": {
+    "exportDate": "2025-07-08T16:56:56.949Z",
+    "version": "4.0",
+    "gymName": "Yacin Gym",
+    "exportId": "export_1751993816949_d3i5em9b7",
+    "totalPayments": 2,
+    "totalMembers": 5,
+    "totalActivities": 5,
+    "totalRevenue": 400,
+    "dataIntegrity": {
+      "paymentsChecksum": 2,
+      "membersChecksum": 5,
+      "activitiesChecksum": 5,
+      "exportComplete": true
+    }
+  },
+  "data": {
+    "payments": [
+      {
+        "id": "1751969793626",
+        "memberId": "session_1751969793625",
+        "amount": 200,
+        "date": "2025-07-08T10:16:33.626Z",
+        "subscriptionType": "حصة واحدة",
+        "paymentMethod": "cash",
+        "status": "completed",
+        "invoiceNumber": "INV-9415",
+        "notes": "دفع حصة واحدة - عضو مؤقت",
+        "receiptUrl": ""
+      },
+      {
+        "id": "1751968736605",
+        "memberId": "session_1751968736605",
+        "amount": 200,
+        "date": "2025-07-08T09:58:56.605Z",
+        "subscriptionType": "حصة واحدة",
+        "paymentMethod": "cash",
+        "status": "completed",
+        "invoiceNumber": "INV-5903",
+        "notes": "دفع حصة واحدة - عضو مؤقت",
+        "receiptUrl": ""
+      }
+    ],
+    "members": [
+      {
+        "id": "1751969060433",
+        "name": "azzae",
+        "membershipStatus": "active",
+        "lastAttendance": "2025-07-08",
+        "imageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=1fyl8a",
+        "phoneNumber": "",
+        "email": "",
+        "membershipType": "شهري",
+        "membershipStartDate": "2025-07-08",
+        "membershipEndDate": "2025-08-08",
+        "subscriptionType": "13 حصة",
+        "sessionsRemaining": 12,
+        "subscriptionPrice": 1500,
+        "paymentStatus": "unpaid",
+        "note": ""
+      },
+      {
+        "id": "1751969447418",
+        "name": "SDCDSCQSDC",
+        "membershipStatus": "active",
+        "lastAttendance": "2025-07-08",
+        "imageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=t8k77o",
+        "phoneNumber": "",
+        "email": "",
+        "membershipType": "شهري",
+        "membershipStartDate": "2025-07-08",
+        "membershipEndDate": "2025-08-08",
+        "subscriptionType": "13 حصة",
+        "sessionsRemaining": 12,
+        "subscriptionPrice": 1500,
+        "paymentStatus": "unpaid",
+        "note": ""
+      },
+      {
+        "id": "1751969066257",
+        "name": "SDFQDF",
+        "membershipStatus": "active",
+        "lastAttendance": "2025-07-08",
+        "imageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=awoy8i",
+        "phoneNumber": "",
+        "email": "",
+        "membershipType": "شهري",
+        "membershipStartDate": "2025-07-08",
+        "membershipEndDate": "2025-08-08",
+        "subscriptionType": "13 حصة",
+        "sessionsRemaining": 12,
+        "subscriptionPrice": 1500,
+        "paymentStatus": "unpaid",
+        "note": ""
+      },
+      {
+        "id": "1751969503620",
+        "name": "SDFQDF",
+        "membershipStatus": "active",
+        "lastAttendance": "2025-07-08",
+        "imageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=9h44d6",
+        "phoneNumber": "",
+        "email": "",
+        "membershipType": "شهري",
+        "membershipStartDate": "2025-07-08",
+        "membershipEndDate": "2025-08-08",
+        "subscriptionType": "13 حصة",
+        "sessionsRemaining": 12,
+        "subscriptionPrice": 1500,
+        "paymentStatus": "unpaid",
+        "note": ""
+      },
+      {
+        "id": "1751969071487",
+        "name": "WFDSDS",
+        "membershipStatus": "active",
+        "lastAttendance": "2025-07-08",
+        "imageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=6dmt58",
+        "phoneNumber": "",
+        "email": "",
+        "membershipType": "شهري",
+        "membershipStartDate": "2025-07-08",
+        "membershipEndDate": "2025-08-08",
+        "subscriptionType": "13 حصة",
+        "sessionsRemaining": 12,
+        "subscriptionPrice": 1500,
+        "paymentStatus": "unpaid",
+        "note": ""
+      }
+    ],
+    "activities": [
+      {
+        "id": "1751969805672",
+        "memberId": "1751969071487",
+        "memberName": "WFDSDS",
+        "memberImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=6dmt58",
+        "activityType": "check-in",
+        "timestamp": "2025-07-08T10:16:45.672Z",
+        "details": "تسجيل حضور - متبقي 12 حصة"
+      },
+      {
+        "id": "1751969803442",
+        "memberId": "1751969503620",
+        "memberName": "SDFQDF",
+        "memberImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=9h44d6",
+        "activityType": "check-in",
+        "timestamp": "2025-07-08T10:16:43.442Z",
+        "details": "تسجيل حضور - متبقي 12 حصة"
+      },
+      {
+        "id": "1751969801421",
+        "memberId": "1751969066257",
+        "memberName": "SDFQDF",
+        "memberImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=awoy8i",
+        "activityType": "check-in",
+        "timestamp": "2025-07-08T10:16:41.421Z",
+        "details": "تسجيل حضور - متبقي 12 حصة"
+      },
+      {
+        "id": "1751969798160",
+        "memberId": "1751969447418",
+        "memberName": "SDCDSCQSDC",
+        "memberImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=t8k77o",
+        "activityType": "check-in",
+        "timestamp": "2025-07-08T10:16:38.160Z",
+        "details": "تسجيل حضور - متبقي 12 حصة"
+      },
+      {
+        "id": "1751969797781",
+        "memberId": "1751969060433",
+        "memberName": "azzae",
+        "memberImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=1fyl8a",
+        "activityType": "check-in",
+        "timestamp": "2025-07-08T10:16:37.781Z",
+        "details": "تسجيل حضور - متبقي 12 حصة"
+      }
+    ]
+  }
+}
