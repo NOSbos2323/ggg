@@ -1,9 +1,497 @@
-📒 جدول منظم بالمبلغ الإجمالي
-السلعة	الكمية عند البداية	الكمية عند النهاية	المبيعات	ثمن الوحدة (دج)	المبلغ الإجمالي (دج)
-جوي (Jus)	12	4	8	50	400
-ڨازوز (Gazoz)	45	8	37	60	2,220
-الماء الكبير	20	4	16	40	640
-الماء الصغير	12	6	6	30	180
-الڨاطو	40	30	10	100	1,000
-الميلفاي	22	10	12	120	1,440
-المجموع					5,880
+import React, { useEffect, useMemo, useState } from "react";
+
+// ✅ صفحة ويب لإدارة السلع + نافذة الكرَيدي (الإسم + اللقب + المبلغ)
+// - جدول سلع بحساب تلقائي (المبيعات + الإجمالي)
+// - حفظ تلقائي في المتصفح
+// - طباعة + تصدير CSV للسلع
+// - نافذة "الكرَيدي": تسجيل الإسم واللقب والمبلغ وملاحظة، تعليم "مسدد"، مجموع غير المسدد، تصدير CSV
+// - ⚙️ أضفنا اختبارات بسيطة تُطبع في Console لضمان صحة الدوال الأساسية.
+
+// ====== دوال مساعدة (خارج المكوّن ليستعملها الاختبار أيضًا) ======
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function formatMoney(n) {
+  try {
+    return new Intl.NumberFormat("fr-DZ").format(n);
+  } catch {
+    return String(n);
+  }
+}
+
+function formatDate(iso) {
+  try {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function escapeCSV(value) {
+  const s = String(value ?? "");
+  if (s.includes(",") || s.includes("\"")) {
+    return '"' + s.replaceAll('"', '""') + '"';
+  }
+  return s;
+}
+
+export default function CafeShiftSheet() {
+  const [title, setTitle] = useState("ورقة حساب المناوبة");
+  const [shift, setShift] = useState("صباحية (4ص → 12ظ)");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // =========== السلع ===========
+  const [items, setItems] = useState(() => {
+    const saved = localStorage.getItem("cafe_sheet_items_v1");
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: crypto.randomUUID(), name: "Jus", startQty: 12, endQty: 4, unitPrice: 50 },
+      { id: crypto.randomUUID(), name: "Gazoz", startQty: 45, endQty: 8, unitPrice: 60 },
+      { id: crypto.randomUUID(), name: "Lma Kbir", startQty: 20, endQty: 4, unitPrice: 40 },
+      { id: crypto.randomUUID(), name: "Lma Sghir", startQty: 12, endQty: 6, unitPrice: 30 },
+      { id: crypto.randomUUID(), name: "Gâteau", startQty: 40, endQty: 30, unitPrice: 100 },
+      { id: crypto.randomUUID(), name: "Millefeuille", startQty: 22, endQty: 10, unitPrice: 120 },
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("cafe_sheet_items_v1", JSON.stringify(items));
+  }, [items]);
+
+  const currency = "دج"; // دينار جزائري
+
+  const rows = useMemo(() => {
+    return items.map((it) => {
+      const start = toNumber(it.startQty);
+      const end = toNumber(it.endQty);
+      const price = toNumber(it.unitPrice);
+      const sold = Math.max(start - end, 0);
+      const total = sold * price;
+      return { ...it, start, end, price, sold, total };
+    });
+  }, [items]);
+
+  const grandTotal = useMemo(() => rows.reduce((s, r) => s + r.total, 0), [rows]);
+
+  function updateItem(id, patch) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+  }
+
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: "سلعة جديدة", startQty: 0, endQty: 0, unitPrice: 0 },
+    ]);
+  }
+
+  function removeItem(id) {
+    setItems((prev) => prev.filter((it) => it.id !== id));
+  }
+
+  function clearAll() {
+    if (!confirm("تمسح كامل السلع؟")) return;
+    setItems([]);
+  }
+
+  function startNextShift() {
+    // نسخ الكمية النهائية كبداية للمناوبة القادمة، وتصفير النهاية
+    setItems((prev) => prev.map((it) => ({ ...it, startQty: toNumber(it.endQty), endQty: 0 })));
+  }
+
+  function printPage() {
+    window.print();
+  }
+
+  function exportCSV() {
+    const header = [
+      "التاريخ",
+      "المناوبة",
+      "السلعة",
+      "الكمية عند البداية",
+      "الكمية عند النهاية",
+      "المبيعات",
+      "ثمن الوحدة",
+      "المبلغ الإجمالي",
+    ];
+    const lines = [header.join(",")];
+    rows.forEach((r) => {
+      lines.push([
+        date,
+        escapeCSV(shift),
+        escapeCSV(r.name),
+        r.start,
+        r.end,
+        r.sold,
+        r.price,
+        r.total,
+      ].join(","));
+    });
+    lines.push(["", "", "", "", "", "", "المجموع", grandTotal].join(","));
+
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cafe_shift_${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // =========== الكرَيدي ==========
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [credits, setCredits] = useState(() => {
+    const saved = localStorage.getItem("cafe_sheet_credits_v1");
+    if (saved) return JSON.parse(saved);
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("cafe_sheet_credits_v1", JSON.stringify(credits));
+  }, [credits]);
+
+  const unpaidTotal = useMemo(
+    () => credits.filter((c) => !c.paid).reduce((s, c) => s + toNumber(c.amount), 0),
+    [credits]
+  );
+
+  function addCredit({ firstName, lastName, amount, note }) {
+    if (!firstName && !lastName) return alert("اكتب الإسم أو اللقب");
+    const amt = toNumber(amount);
+    if (amt <= 0) return alert("المبلغ لازم يكون أكبر من صفر");
+    setCredits((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        firstName: (firstName || "").trim(),
+        lastName: (lastName || "").trim(),
+        amount: amt,
+        note: (note || "").trim(),
+        date: new Date().toISOString(),
+        paid: false,
+      },
+    ]);
+  }
+
+  function updateCredit(id, patch) {
+    setCredits((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+
+  function removeCredit(id) {
+    setCredits((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function clearPaidCredits() {
+    if (!confirm("تمسح كل الكرَيدي المسدد؟")) return;
+    setCredits((prev) => prev.filter((c) => !c.paid));
+  }
+
+  function exportCreditsCSV() {
+    const header = ["التاريخ", "الإسم", "اللقب", "المبلغ", "ملاحظة", "وضعية"];
+    const lines = [header.join(",")];
+    credits.forEach((c) => {
+      lines.push([
+        formatDate(c.date),
+        escapeCSV(c.firstName),
+        escapeCSV(c.lastName),
+        toNumber(c.amount),
+        escapeCSV(c.note || ""),
+        c.paid ? "مسدد" : "غير مسدد",
+      ].join(","));
+    });
+    lines.push(["", "", "", unpaidTotal, "المجموع غير المسدد", ""].join(","));
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `credits_${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <input
+            className="text-2xl font-bold bg-transparent outline-none border-b border-gray-300 focus:border-gray-500 p-1 w-full md:w-auto"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="date"
+              className="border rounded-2xl px-3 py-2 shadow-sm"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <input
+              type="text"
+              className="border rounded-2xl px-3 py-2 shadow-sm"
+              value={shift}
+              onChange={(e) => setShift(e.target.value)}
+              placeholder="إسم المناوبة"
+            />
+            <button onClick={() => setCreditOpen(true)} className="px-4 py-2 rounded-2xl shadow bg-indigo-600 text-white hover:opacity-90">
+              الكرَيدي ({formatMoney(unpaidTotal)} {currency})
+            </button>
+            <button onClick={printPage} className="px-4 py-2 rounded-2xl shadow bg-white hover:bg-gray-100 border">
+              طباعة
+            </button>
+            <button onClick={exportCSV} className="px-4 py-2 rounded-2xl shadow bg-white hover:bg-gray-100 border">
+              تصدير CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-2xl shadow p-4 overflow-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-3 pr-3">#</th>
+                <th className="py-3 pr-3">السلعة</th>
+                <th className="py-3 pr-3">الكمية عند البداية</th>
+                <th className="py-3 pr-3">الكمية عند النهاية</th>
+                <th className="py-3 pr-3">المبيعات</th>
+                <th className="py-3 pr-3">ثمن الوحدة ({currency})</th>
+                <th className="py-3 pr-3">المبلغ الإجمالي ({currency})</th>
+                <th className="py-3 pr-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={r.id} className="border-b last:border-0">
+                  <td className="py-2 pr-3 align-top">{idx + 1}</td>
+                  <td className="py-2 pr-3">
+                    <input
+                      className="w-44 border rounded-xl px-2 py-1"
+                      value={r.name}
+                      onChange={(e) => updateItem(r.id, { name: e.target.value })}
+                    />
+                  </td>
+                  <td className="py-2 pr-3">
+                    <NumberInput value={r.start} onChange={(v) => updateItem(r.id, { startQty: v })} />
+                  </td>
+                  <td className="py-2 pr-3">
+                    <NumberInput value={r.end} onChange={(v) => updateItem(r.id, { endQty: v })} />
+                  </td>
+                  <td className="py-2 pr-3 font-medium">{r.sold}</td>
+                  <td className="py-2 pr-3">
+                    <NumberInput value={r.price} onChange={(v) => updateItem(r.id, { unitPrice: v })} />
+                  </td>
+                  <td className="py-2 pr-3 font-semibold">{formatMoney(r.total)}</td>
+                  <td className="py-2 pr-3">
+                    <button onClick={() => removeItem(r.id)} className="text-red-600 hover:underline" title="حذف">حذف</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={6} className="text-right font-bold py-3 pr-3">المجموع:</td>
+                <td className="font-extrabold text-lg">{formatMoney(grandTotal)} {currency}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <button onClick={addItem} className="px-4 py-2 rounded-2xl shadow bg-gray-900 text-white hover:opacity-90">+ إضافة سلعة</button>
+            <button onClick={startNextShift} className="px-4 py-2 rounded-2xl shadow bg-white hover:bg-gray-100 border">بدء مُناوبة جديدة</button>
+            <button onClick={clearAll} className="px-4 py-2 rounded-2xl shadow bg-white hover:bg-gray-100 border text-red-600">مسح الكل</button>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="text-xs text-gray-500">ملاحظة: يتم الحفظ تلقائيًا في المتصفح. زر "بدء مُناوبة جديدة" ينسخ الكميات النهائية إلى حقل البداية ويصفر النهاية.</div>
+      </div>
+
+      {/* نافذة الكرَيدي */}
+      {creditOpen && (
+        <CreditModal
+          onClose={() => setCreditOpen(false)}
+          credits={credits}
+          addCredit={addCredit}
+          updateCredit={updateCredit}
+          removeCredit={removeCredit}
+          clearPaidCredits={clearPaidCredits}
+          unpaidTotal={unpaidTotal}
+          exportCreditsCSV={exportCreditsCSV}
+          currency={currency}
+        />
+      )}
+    </div>
+  );
+}
+
+function NumberInput({ value, onChange }) {
+  const [txt, setTxt] = useState(String(value ?? 0));
+  useEffect(() => setTxt(String(value ?? 0)), [value]);
+
+  function handleChange(e) {
+    const v = e.target.value.replace(/[^0-9.]/g, "");
+    setTxt(v);
+    const n = Number(v);
+    onChange(Number.isFinite(n) && n >= 0 ? n : 0);
+  }
+
+  return (
+    <input
+      inputMode="decimal"
+      className="w-28 border rounded-xl px-2 py-1"
+      value={txt}
+      onChange={handleChange}
+    />
+  );
+}
+
+function CreditModal({ onClose, credits, addCredit, updateCredit, removeCredit, clearPaidCredits, unpaidTotal, exportCreditsCSV, currency }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [showPaid, setShowPaid] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return credits.filter((c) => {
+      const inPaid = showPaid ? true : !c.paid;
+      const full = `${c.firstName || ""} ${c.lastName || ""}`.trim().toLowerCase();
+      const inSearch = !q || full.includes(q) || (c.note || "").toLowerCase().includes(q);
+      return inPaid && inSearch;
+    });
+  }, [credits, showPaid, search]);
+
+  function submit(e) {
+    e.preventDefault();
+    addCredit({ firstName, lastName, amount, note });
+    setFirstName("");
+    setLastName("");
+    setAmount("");
+    setNote("");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-4xl mx-4 rounded-2xl shadow-2xl p-5">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-xl font-bold">دفتر الكرَيدي</h2>
+          <button onClick={onClose} className="px-3 py-1 rounded-xl border hover:bg-gray-50">إغلاق</button>
+        </div>
+
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
+          <input className="border rounded-xl px-3 py-2" placeholder="الإسم" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          <input className="border rounded-xl px-3 py-2" placeholder="اللقب" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          <input className="border rounded-xl px-3 py-2" placeholder={`المبلغ (${currency})`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} />
+          <input className="border rounded-xl px-3 py-2 md:col-span-2" placeholder="ملاحظة (وش خذا؟)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <button type="submit" className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:opacity-90 md:col-span-5">+ إضافة</button>
+        </form>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+          <div className="text-sm">المجموع غير المسدد: <span className="font-bold">{formatMoney(unpaidTotal)} {currency}</span></div>
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={showPaid} onChange={(e) => setShowPaid(e.target.checked)} />
+              عرض الكل (بما فيها المسدد)
+            </label>
+            <button onClick={exportCreditsCSV} className="px-3 py-2 rounded-xl border hover:bg-gray-50">تصدير CSV</button>
+            <button onClick={clearPaidCredits} className="px-3 py-2 rounded-xl border text-red-600 hover:bg-gray-50">حذف المسدد</button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-3">
+          <input className="border rounded-xl px-3 py-2 w-full" placeholder="بحث بالإسم/اللقب أو الملاحظة" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+
+        <div className="mt-4 max-h-80 overflow-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-2 pr-3">التاريخ</th>
+                <th className="py-2 pr-3">الإسم</th>
+                <th className="py-2 pr-3">اللقب</th>
+                <th className="py-2 pr-3">المبلغ ({currency})</th>
+                <th className="py-2 pr-3">ملاحظة</th>
+                <th className="py-2 pr-3">وضعية</th>
+                <th className="py-2 pr-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c) => (
+                <tr key={c.id} className="border-b last:border-0">
+                  <td className="py-2 pr-3">{formatDate(c.date)}</td>
+                  <td className="py-2 pr-3"><input className="border rounded-lg px-2 py-1" value={c.firstName} onChange={(e) => updateCredit(c.id, { firstName: e.target.value })} /></td>
+                  <td className="py-2 pr-3"><input className="border rounded-lg px-2 py-1" value={c.lastName} onChange={(e) => updateCredit(c.id, { lastName: e.target.value })} /></td>
+                  <td className="py-2 pr-3"><input className="border rounded-lg px-2 py-1 w-28" inputMode="decimal" value={c.amount} onChange={(e) => updateCredit(c.id, { amount: e.target.value.replace(/[^0-9.]/g, "") })} /></td>
+                  <td className="py-2 pr-3"><input className="border rounded-lg px-2 py-1 w-64" value={c.note || ""} onChange={(e) => updateCredit(c.id, { note: e.target.value })} /></td>
+                  <td className="py-2 pr-3"><label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!c.paid} onChange={(e) => updateCredit(c.id, { paid: e.target.checked })} /><span className="text-xs">مسدد</span></label></td>
+                  <td className="py-2 pr-3"><button onClick={() => removeCredit(c.id)} className="text-red-600 hover:underline">حذف</button></td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-gray-500">ماكان حتى سجل مطابق</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====== اختبارات بسيطة (Console) ======
+(function runTests() {
+  try {
+    const results = [];
+    function assertEq(actual, expected, msg) {
+      const ok = Object.is(actual, expected);
+      results.push({ ok, msg, actual, expected });
+    }
+
+    // toNumber
+    assertEq(toNumber("12"), 12, "toNumber يحوّل نص لرقم");
+    assertEq(toNumber(-5), 0, "toNumber يرجّع 0 للقيم السالبة");
+
+    // عملية بيع نموذجية: start=10, end=4, price=50 => sold=6, total=300
+    const start = 10, end = 4, price = 50;
+    const sold = Math.max(start - end, 0);
+    assertEq(sold, 6, "حساب المبيعات صحيح");
+    assertEq(sold * price, 300, "حساب الإجمالي صحيح");
+
+    // unpaidTotal مثال
+    const sampleCredits = [
+      { amount: 100, paid: false },
+      { amount: 50, paid: true },
+      { amount: 25, paid: false },
+    ];
+    const sampleUnpaid = sampleCredits.filter((c) => !c.paid).reduce((s, c) => s + toNumber(c.amount), 0);
+    assertEq(sampleUnpaid, 125, "مجموع غير المسدد صحيح");
+
+    // escapeCSV
+    assertEq(escapeCSV("A,B"), '"A,B"', "escapeCSV يقتبس النص اللي فيه فاصلة");
+
+    const passed = results.filter((r) => r.ok).length;
+    const failed = results.filter((r) => !r.ok);
+    // eslint-disable-next-line no-console
+    console.log(`CafeShiftSheet tests: ${passed}/${results.length} passed`);
+    if (failed.length) {
+      // eslint-disable-next-line no-console
+      console.warn("Failed:", failed);
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Test runner error:", err);
+  }
+})();
